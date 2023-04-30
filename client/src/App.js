@@ -1,13 +1,15 @@
-import { SocketContext, socket } from './context/SocketContext'
+import { Routes, Route } from 'react-router-dom'
 import Home from './pages/Home'
+import Game from './pages/Game'
 
 function App() {
   return (
-    <SocketContext.Provider value={socket}>
-      <div className="App">
-        <Home/>
-      </div>
-    </SocketContext.Provider>
+    <div className="App">
+      <Routes>
+        <Route exact path='/' element={<Home/>} />
+        <Route exact path='game/:roomId' element={<Game/>} />
+      </Routes>
+    </div>
   );
 }
 

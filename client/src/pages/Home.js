@@ -1,8 +1,10 @@
 import { useContext, useEffect, useState } from 'react'
+import {useNavigate } from 'react-router-dom'
 import { SocketContext } from '../context/SocketContext'
 
 function Home() {
   const socket = useContext(SocketContext);
+  const navigate = useNavigate();
   const [nickname, setNickname] = useState('');
   const [roomId, setRoomId] = useState('');
   const [roomNotFound, setRoomNotFound] = useState(false);
@@ -17,25 +19,23 @@ function Home() {
   const createRoom = () => {
     setRoomNotFound(false);
     socket.emit('create_room', {nickname});
-    // navigate to game page waiting screen
   }
 
   const joinRandom = () => {
     setRoomNotFound(false);
     socket.emit('join_random', {nickname});
-    // navigate to game page init screen
   }
 
   useEffect(() => {
-    socket.on('room_not_found', () => {
+    socket.on('room_not_found', (data) => {
       setRoomNotFound(true);
     });
 
-    socket.on('room_found', () => {
-      // navigate to game page init screen with props {nickname, opponent nickname, room number}
-      alert('youre in the room yay')
+    socket.on('join_success', (data) => {
+      var {roomId} = data;
+      navigate(`/game/${roomId}`);
     })
-  }, [socket]);
+  }, [socket, navigate]);
 
   return (
     <div className="home-container">
