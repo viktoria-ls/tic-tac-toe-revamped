@@ -1,0 +1,12 @@
+.ability {
+    border: 2px solid blue;
+}
+
+.ability:hover {
+    cursor: pointer;
+}
+
+.ability_container {
+    display: flex;
+    gap: 5px;
+}

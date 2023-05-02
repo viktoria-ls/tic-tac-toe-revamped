@@ -10,11 +10,15 @@ const abilityOptions = [
   {name: 'name3', description: 'desc3'},
   {name: 'name4', description: 'desc4'}];
 
-function Game() {
+const Game = () => {
   const socket = useContext(SocketContext);
   var params = useParams();
   const [playersSelect, setPlayersSelect] = useState(false);  // player is ready to select abilities
   const [playersReady, setPlayersReady] = useState(false); // players both finished selecting
+
+  const [nickname, setNickname] = useState('');
+  const [otherNickname, setOtherNickname] = useState('');
+  const [token, setToken] = useState('');
 
   const [abilities, setAbilities] = useState([]);
 
@@ -34,7 +38,12 @@ function Game() {
       setPlayersSelect(false);
     });
 
-    socket.on('players_ready', () => {
+    socket.on('player_assignment', (data) => {
+      var {nickname, otherNickname, token} = data;
+      setNickname(nickname);
+      setOtherNickname(otherNickname);
+      setToken(token);
+
       console.log('ready');
       setPlayersReady(true);
     });
@@ -45,7 +54,7 @@ function Game() {
       <button>Quit</button>
 
       {playersSelect && <AbilitySelect roomId={params.roomId} abilities={abilityOptions}/>}
-      {playersReady && <Board abilities={abilities}/>}
+      {playersReady && <Board roomId={params.roomId} abilities={abilities} nickname={nickname} otherNickname={otherNickname} token={token}/>}
 
       {(!playersSelect && !playersReady) &&
       <p>Waiting for other player</p>}

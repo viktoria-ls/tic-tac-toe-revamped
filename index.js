@@ -16,7 +16,7 @@ const io = new Server(server, {
 });
 
 var nextRoomId = 1;
-var rooms = new Map();
+var rooms = new Map(); // change roomId: num to roomId: {nickname, otherNickname, numReady}
 
 io.on('connection', (socket) => {
     console.log(`Connected socket #${socket.id}`);
@@ -27,8 +27,9 @@ io.on('connection', (socket) => {
         if(rooms.has(roomId)) {
             socket.join(roomId);
             socket.emit('join_success', {roomId});
+            rooms.set(roomId, {...rooms.get(roomId), otherNickname: nickname});
+            console.log(rooms)
             console.log(`User ${nickname} joined Room ${roomId}`);
-            console.log(io.sockets.adapter.rooms);
         }
         else {
             console.log(`Room ${roomId} not found`)
@@ -43,7 +44,8 @@ io.on('connection', (socket) => {
         socket.join(newRoomId);
         socket.emit('join_success', {roomId: newRoomId});
         nextRoomId += 1;
-        rooms.set(newRoomId, 0);
+
+        rooms.set(newRoomId, {nickname, numReady: 0});
         console.log(`User ${nickname} created Room ${newRoomId}`);
         console.log(rooms)
     });
@@ -56,7 +58,9 @@ io.on('connection', (socket) => {
             if(rooms.has(roomIds[i]) && io.sockets.adapter.rooms.get(roomIds[i]).size === 1) {
                 socket.join(roomIds[i]);
                 socket.emit('join_success', {roomId: roomIds[i]});
+                rooms.set(roomIds[i], {...rooms.get(roomIds[i]), otherNickname: nickname});
                 console.log(`User ${nickname} joined Room ${roomIds[i]}`);
+                console.log(rooms)
                 break;
             }
         }
@@ -74,12 +78,28 @@ io.on('connection', (socket) => {
 
     socket.on('confirm_abilities', (data) => {
         var {abilities, roomId} = data;
-        rooms.set(roomId, rooms.get(roomId) + 1);
+        rooms.set(roomId, {...rooms.get(roomId), numReady: rooms.get(roomId).numReady + 1});
+        console.log(rooms)
         socket.emit('abilities_ready', {abilities});
-        if(rooms.get(roomId) === 2) {
+        if(rooms.get(roomId).numReady === 2) {
             console.log(`Room ${roomId} players ready`);
-            io.in(roomId).emit('players_ready');
+
+            var [first, second] = io.sockets.adapter.rooms.get(roomId);
+            io.in(first).emit('player_assignment', {nickname: rooms.get(roomId).nickname, otherNickname:rooms.get(roomId).otherNickname, token: 'X'});
+            io.in(second).emit('player_assignment', {nickname: rooms.get(roomId).otherNickname, otherNickname:rooms.get(roomId).nickname, token: 'O'});
+
+            io.in(first).emit('your_turn', {});
         }
+    });
+
+    socket.on('turn_done', (data) => {
+        var {roomId, row, col} = data;
+        var roomClients = io.sockets.adapter.rooms.get(roomId);
+
+        roomClients.forEach(c => {
+            if(c !== socket.id)
+                io.in(c).emit('your_turn', {row, col});
+        });
     });
 
     socket.on('disconnect', () => {
